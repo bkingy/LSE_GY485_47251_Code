@@ -1,0 +1,163 @@
+---
+title: "Table11&Figure11/12"
+output: html_document
+date: "2025-07-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval=TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+# Install the necessary packages (if not installed)
+packages <- c("sf", "spdep", "spatialreg", "readr", "dplyr", "tmap", "ggplot2", "officer", "flextable")
+installed <- packages %in% rownames(installed.packages())
+if (any(!installed)) install.packages(packages[!installed])
+
+# Load packages
+library(sf)
+library(spdep)
+library(spatialreg)
+library(readr)
+library(dplyr)
+library(tmap)
+library(ggplot2)
+library(officer)
+library(flextable)
+
+# 1. Read data
+shp_path <- "/Users/liyang/Desktop/Codes/6. Discussion/MSOA shapefile/MSOA_2011_London_gen_MHW.shp"
+csv_path <- "/Users/liyang/Desktop/毕设/C-M/df_long1.csv"
+
+msoa_shp <- st_read(shp_path)
+panel_data <- read_csv(csv_path) %>%
+  mutate(ln_income = log(income))  
+
+# Merge spatial data
+msoa_data <- left_join(msoa_shp, panel_data, by = c("MSOA11CD" = "MSOA11CD"))
+
+# Construct the adjacency matrix (full sample)
+nb <- poly2nb(msoa_data)
+lw <- nb2listw(nb, style = "W")
+
+# Extract the subset of years
+msoa_2011 <- msoa_data %>% filter(year == 2011)
+msoa_2021 <- msoa_data %>% filter(year == 2021)
+
+# Calculate Moran’s I
+moran_income_2011 <- moran.test(msoa_2011$ln_income, nb2listw(poly2nb(msoa_2011)))
+moran_income_2021 <- moran.test(msoa_2021$ln_income, nb2listw(poly2nb(msoa_2021)))
+moran_imd_2011 <- moran.test(msoa_2011$imd, nb2listw(poly2nb(msoa_2011)))
+
+# Re-construct the adjacency matrix and weight matrix for the subset of 2021 to avoid length mismatch
+nb_2021 <- poly2nb(msoa_2021)
+lw_2021 <- nb2listw(nb_2021, style = "W")
+moran_imd_2021 <- moran.test(msoa_2021$imd, lw_2021)
+```
+
+```{r}
+# Add OA layer
+oa_path <- "/Users/liyang/Desktop/Codes/6. Discussion/OA.gpkg/Opportunity_Areas.gpkg"
+oa_layer <- st_read(oa_path)
+oa_layer <- st_transform(oa_layer, crs = st_crs(msoa_2021))
+```
+
+```{r}
+# Generate LISA Map - ln income (2021)
+income_lisa <- localmoran(msoa_2021$ln_income, listw = lw_2021)
+msoa_2021$income_lisa_I <- income_lisa[, 1]
+msoa_2021$income_lisa_p <- income_lisa[, 5]
+
+lisa_map_income <- tm_shape(msoa_2021) +
+  tm_polygons("income_lisa_I", palette = "-RdBu", style = "quantile", title = "Local Moran's I (ln_income)") +
+  tm_shape(oa_layer) +
+  tm_borders(col = "yellow", lwd = 2) +
+    tm_compass(type = "8star", position = c("right", "top"), size = 2) +
+  tm_scale_bar(position = c("left", "bottom"))+
+  tm_add_legend(type = "line",
+              labels = "Opportunity Areas",
+              col = "yellow",
+              lwd = 3) +
+  tm_layout(main.title = "Figure 11. LISA Cluster Map of ln_income (2021)",
+            legend.outside = TRUE)
+
+lisa_map_income
+tmap_save(lisa_map_income, filename = "Figure11_LISA_ln_income_2021.png", width = 8, height = 6)
+```
+
+```{r}
+# Generate LISA Map - IMD (2021)
+imd_lisa <- localmoran(msoa_2021$imd, listw = lw_2021)
+msoa_2021$imd_lisa_I <- imd_lisa[, 1]
+msoa_2021$imd_lisa_p <- imd_lisa[, 5]
+
+lisa_map_imd <- tm_shape(msoa_2021) +
+  tm_polygons("imd_lisa_I", palette = "-Blues", style = "quantile", title = "Local Moran's I (IMD)") +
+  tm_shape(oa_layer) +
+  tm_borders(col = "red", lwd = 2) +
+  tm_compass(type = "8star", position = c("right", "top"), size = 2) +
+  tm_scale_bar(position = c("left", "bottom"))+
+  tm_add_legend(type = "line",
+              labels = "Opportunity Areas",
+              col = "red",
+              lwd = 3) +
+  tm_layout(main.title = "Figure 12. LISA Cluster Map of IMD Income Score (2021)",
+            legend.outside = TRUE)
+
+lisa_map_imd
+tmap_save(lisa_map_imd, filename = "Figure12_LISA_IMD_2021.png", width = 8, height = 6)
+```
+
+```{r}
+# Run SDM model for ln_income
+sdm_data <- msoa_data %>%
+  dplyr::select(MSOA11CD, year, ln_income, imd, oa, pop, unem, edu, mig)
+
+sdm_data$year <- as.factor(sdm_data$year)
+
+sdm_income <- lagsarlm(ln_income ~ oa + pop + unem + edu + mig,
+                       data = sdm_data,
+                       listw = lw,
+                       type = "mixed")
+sdm_income
+```
+
+```{r}
+# Run SDM model for imd
+sdm_imd <- lagsarlm(imd ~ oa + pop + unem + edu + mig,
+                    data = sdm_data,
+                    listw = lw,
+                    type = "mixed")
+sdm_imd
+```
+
+```{r}
+# Export the SDM regression results to Word
+extract_coef <- function(model) {
+  coefs <- summary(model)$Coef
+  data.frame(
+    Variable = rownames(coefs),
+    Coefficient = round(coefs[, 1], 5),
+    Std_Error = round(coefs[, 2], 5),
+    p_value = round(coefs[, 4], 5)
+  )
+}
+
+income_df <- extract_coef(sdm_income)
+imd_df <- extract_coef(sdm_imd)
+
+ft_income <- flextable(income_df)
+ft_imd <- flextable(imd_df)
+
+doc2 <- read_docx() %>%
+  body_add_par("Table 11. SDM Results for ln_income", style = "heading 2") %>%
+  body_add_flextable(ft_income) %>%
+  body_add_par("Table 11. SDM Results for IMD", style = "heading 2") %>%
+  body_add_flextable(ft_imd)
+
+print(doc2, target = "SDM.docx")
+```
+
+
+
+
