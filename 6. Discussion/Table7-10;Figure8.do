@@ -1,5 +1,5 @@
 * Import data and basic setup
-import delimited "/Users/liyang/Desktop/毕设/C-M/df_long1.csv", clear
+import delimited "/yourpath/df_long1.csv", clear
 gen ln_income = log(income)
 encode msoa11cd, gen(msoa_id)
 xtset msoa_id year
