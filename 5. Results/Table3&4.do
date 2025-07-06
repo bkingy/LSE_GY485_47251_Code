@@ -9,6 +9,7 @@ xtset msoa_id year
 * ==============================
 * Table 3. Descriptive Statistics
 * ==============================
+ssc install estout, replace
 estpost summarize ln_income imd oa pop unem edu mig 
 esttab using descriptives.rtf, cells("count mean sd min max") replace title("5.1 Descriptive Statistics") label noobs nonumber
 
