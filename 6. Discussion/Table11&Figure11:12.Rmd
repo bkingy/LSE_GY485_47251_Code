@@ -26,8 +26,8 @@ library(officer)
 library(flextable)
 
 # 1. Read data
-shp_path <- "/Users/liyang/Desktop/Codes/6. Discussion/MSOA shapefile/MSOA_2011_London_gen_MHW.shp"
-csv_path <- "/Users/liyang/Desktop/毕设/C-M/df_long1.csv"
+shp_path <- "/yourpath/MSOA shapefile/MSOA_2011_London_gen_MHW.shp"
+csv_path <- "/yourpath/df_long1.csv"
 
 msoa_shp <- st_read(shp_path)
 panel_data <- read_csv(csv_path) %>%
@@ -57,7 +57,7 @@ moran_imd_2021 <- moran.test(msoa_2021$imd, lw_2021)
 
 ```{r}
 # Add OA layer
-oa_path <- "/Users/liyang/Desktop/Codes/6. Discussion/OA.gpkg/Opportunity_Areas.gpkg"
+oa_path <- "/yourpath/OA.gpkg/Opportunity_Areas.gpkg"
 oa_layer <- st_read(oa_path)
 oa_layer <- st_transform(oa_layer, crs = st_crs(msoa_2021))
 ```
