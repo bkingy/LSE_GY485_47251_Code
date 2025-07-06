@@ -18,5 +18,5 @@
     - `Opportunity_Areas.gpkg`: Opportunity Areas boundaries and administrative zones.
     - `gadm41_CHN_shp`: GADM administrative boundaries for spatial reference.
 - `Table11&Figure11/12.Rmd`: .Rmd file replicate Table 11 and Figure 11-12.
-- `Table11-Figure11-12.html`: corresponding rendered HTML files included Figure 11-12.
+- `Table11-Figure11-12.html`: corresponding rendered HTML files including Figure 11-12.
 - `SDM.docx`: Full SDM regression outputs for DVs.
