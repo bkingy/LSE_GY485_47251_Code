@@ -1,4 +1,4 @@
-import delimited "/Users/liyang/Desktop/毕设/C-M/df_long1.csv"
+import delimited "/yourpath/df_long1.csv"
 * Generate logarithmic income variables
 gen ln_income = log(income)
 * Encode the string id variable
