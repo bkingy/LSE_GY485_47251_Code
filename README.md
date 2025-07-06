@@ -9,7 +9,7 @@
 - `Table2.do`: STATA .do file to replicate Table 2.
 
 ### 5.Results/
-- `Table3&4.do`; `Table5.do`; `Table6.do`: STATA .do file to replicate Table 2-6.
+- `Table3&4.do`; `Table5.do`; `Table6.do`: STATA .do file to replicate Table 3-6.
 
 ### 6.Discussion/
 - `Table7-10;Figure8.do`: STATA .do file to replicate Table 7-10 and Figure 8.
